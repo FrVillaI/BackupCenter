@@ -1,0 +1,21 @@
+<h2>Dashboard</h2>
+
+<div *ngFor="let e of empresas" class="mb-2">
+  <label>
+    <input type="checkbox" (change)="toggleSelection(e.id, $event)">
+    {{ e.nombre }}
+  </label>
+</div>
+
+<button (click)="startBackupSelected()" class="btn btn-primary mt-3">
+  Realizar respaldos seleccionados
+</button>
+
+<div class="mt-4">
+  <h3>Respaldos</h3>
+  <ul>
+    <li *ngFor="let e of empresas">
+      {{ e.nombre }} - Última copia: {{ e.ultimaCopia || 'N/A' }}
+    </li>
+  </ul>
+</div>

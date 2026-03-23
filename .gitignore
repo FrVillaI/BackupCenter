@@ -1,0 +1,55 @@
+# ========================
+# .NET (Backend)
+# ========================
+bin/
+obj/
+*.user
+*.suo
+*.cache
+
+# Bases de datos locales
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# ========================
+# Node / Angular (Frontend)
+# ========================
+node_modules/
+dist/
+.angular/
+coverage/
+out-tsc/
+tmp/
+
+# Angular cache
+.angular/cache
+
+# ========================
+# IDEs / Editores
+# ========================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+.idea/
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# ========================
+# Sistema
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# Archivos sensibles
+# ========================
+appsettings.Development.json
+.env

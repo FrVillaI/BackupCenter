@@ -1,0 +1,32 @@
+<div class="container mt-5" style="padding: 60px; background-size: cover;">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow p-4" style="border-radius: 20px; border: 2px solid #555; background-color: rgba(249, 249, 249, 0.8);">
+        <h1 class="text-center mb-4" style="color: #555; font-family: 'Arial', sans-serif; font-size: 2.5rem; font-weight: bold;">Login</h1>
+
+        <form (ngSubmit)="login(formulario)" #formulario="ngForm">
+          <div class="form-group mb-3">
+            <label for="username" class="form-label" style="color: #555; font-weight: bold;">Email:</label>
+            <input type="text" class="form-control" placeholder="Username" name="username" [(ngModel)]="username" style="border-radius: 10px; border: 2px solid #555;">
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="password" class="form-label" style="color: #555; font-weight: bold;">Password:</label>
+            <div class="input-group">
+              <input [type]="passwordFieldType" class="form-control" placeholder="Password" name="password" [(ngModel)]="password" style="border-radius: 10px; border: 2px solid #555;">
+              <button type="button" class="btn btn-outline-secondary" (click)="togglePasswordVisibility()" style="border-radius: 10px; border: 2px solid #555; background-color: #f0f0f0; color: #555;">
+                {{ passwordFieldType === 'password' ? 'ver' : 'no ver' }}
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-success w-100" style="border-radius: 10px; background-color: rgb(209, 82, 65); border-color: rgb(250, 16, 16);">Submit</button>
+        </form>
+
+        <div *ngIf="userRole" style="margin-top: 20px;">
+          <p style="color: #555; font-weight: bold;">User Role: {{ userRole }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
