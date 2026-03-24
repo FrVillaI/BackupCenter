@@ -3,10 +3,12 @@ using System.IO;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Linq;
-
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 using BackupCenter.Application.Interfaces;
 using BackupCenter.Application.Models;
@@ -18,107 +20,120 @@ namespace BackupCenter.Application.Services;
 public class BackupService : IBackupService
 {
     private readonly BackupCenterDbContext _db;
-    private readonly string _backupRoot = @"C:\Fenix\Backups";
+    private readonly ILogger<BackupService> _logger;
+    private readonly string _backupRoot;
     private const long MaxCopyBytes = 50L * 1024 * 1024 * 1024; // 50 GB
-    public BackupService(BackupCenterDbContext db)
+
+    // Lock por empresa
+    private static readonly ConcurrentDictionary<int, SemaphoreSlim> _empresaLocks = new();
+
+    public BackupService(BackupCenterDbContext db, ILogger<BackupService> logger, IConfiguration config)
     {
         _db = db;
+        _logger = logger;
+
+        _backupRoot = config["BackupSettings:RootPath"] 
+              ?? throw new Exception("Backup root path no configurado");
+
         Directory.CreateDirectory(_backupRoot);
     }
 
     public async Task<BackupResult> CreateBackupAsync(int empresaId, string? overridePath = null, bool isAutomatic = false)
     {
         var empresa = await _db.Empresas.FirstOrDefaultAsync(e => e.Id == empresaId);
-        if (empresa == null) throw new Exception("Empresa no encontrada");
+        if (empresa == null) throw new Exception($"Empresa {empresaId} no encontrada");
 
-        var sourcePath = string.IsNullOrWhiteSpace(overridePath) ? empresa.RutaOrigen : overridePath;
-        if (string.IsNullOrWhiteSpace(sourcePath) || !Directory.Exists(sourcePath))
-            throw new DirectoryNotFoundException("Ruta origen no válida o no encontrada");
+        // Lock por empresa para evitar concurrencia
+        var semaphore = _empresaLocks.GetOrAdd(empresaId, _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync();
 
-        // Tamaño de origen chequeado
-        var totalBytes = GetDirectorySize(sourcePath);
-        if (totalBytes > MaxCopyBytes)
-            throw new InvalidOperationException("El tamaño de la carpeta origen excede el límite permitido para respaldo.");
-
-        var empresaFolderName = empresa.Nombre.Replace(" ", "_");
-        var empresaBasePath = Path.Combine(_backupRoot, empresaFolderName);
-        Directory.CreateDirectory(empresaBasePath);
-
-        var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-        var zipFileName = $"Backup_{empresaFolderName}_{timestamp}.zip";
-        var stagingDir = Path.Combine(empresaBasePath, "staging_" + timestamp);
-        Directory.CreateDirectory(stagingDir);
-
-        // Copiar carpeta origen a staging
         try
         {
-            CopyDirectory(sourcePath, stagingDir);
-        }
-        catch (UnauthorizedAccessException uaex)
-        {
-            throw new UnauthorizedAccessException("Permisos insuficientes para leer/copiar la ruta origen.", uaex);
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Error al copiar datos para backup: {ex.Message}", ex);
-        }
+            var sourcePath = string.IsNullOrWhiteSpace(overridePath) ? empresa.RutaOrigen : overridePath;
 
-        // Crear ZIP
-        var zipPath = Path.Combine(empresaBasePath, zipFileName);
-        try
-        {
-            ZipFile.CreateFromDirectory(stagingDir, zipPath, CompressionLevel.Optimal, true);
-        }
-        catch (Exception ex)
-        {
-            // Limpiar staging si falla
-            try { Directory.Delete(stagingDir, true); } catch { }
-            throw new IOException("Error al crear ZIP del backup: " + ex.Message, ex);
-        }
+            if (string.IsNullOrWhiteSpace(sourcePath) || !Directory.Exists(sourcePath))
+                throw new DirectoryNotFoundException("Ruta origen no válida o no encontrada");
 
-        // Quitar staging
-        try { Directory.Delete(stagingDir, true); } catch { /* ignore */ }
+            var totalBytes = GetDirectorySize(sourcePath);
+            if (totalBytes > MaxCopyBytes)
+                throw new InvalidOperationException("El tamaño de la carpeta origen excede el límite permitido");
 
-        // Hash SHA-256 del ZIP
-        string hash;
-        try
-        {
-            hash = ComputeSha256(zipPath);
+            var empresaFolderName = empresa.Nombre.Replace(" ", "_");
+            var empresaBasePath = Path.Combine(_backupRoot, empresaFolderName);
+            Directory.CreateDirectory(empresaBasePath);
+
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var zipFileName = $"Backup_{empresaFolderName}_{timestamp}.zip";
+            var stagingDir = Path.Combine(empresaBasePath, "staging_" + timestamp);
+            Directory.CreateDirectory(stagingDir);
+
+            // 🔄 Copiar carpeta origen
+            try
+            {
+                CopyDirectory(sourcePath, stagingDir);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error copiando archivos para backup de {Empresa}", empresa.Nombre);
+                throw;
+            }
+
+            // 🔄 Crear ZIP
+            var zipPath = Path.Combine(empresaBasePath, zipFileName);
+            try
+            {
+                ZipFile.CreateFromDirectory(stagingDir, zipPath, CompressionLevel.Optimal, true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creando ZIP para backup de {Empresa}", empresa.Nombre);
+                throw;
+            }
+            finally
+            {
+                // 🔄 Limpiar staging
+                try { Directory.Delete(stagingDir, true); } catch { }
+            }
+
+            // 🔄 Hash SHA-256
+            string hash = ComputeSha256(zipPath);
             var hashPath = zipPath + ".sha256";
             await File.WriteAllTextAsync(hashPath, hash);
+
+            // 🔄 Registrar en DB
+            var backup = new BackupRecord
+            {
+                Empresa = empresa.Nombre,
+                Fecha = DateTime.UtcNow,
+                Archivo = Path.GetFileName(zipPath),
+                Hash = hash,
+                Ruta = zipPath,
+                Tipo = isAutomatic ? "AUTOMATICO" : "MANUAL"
+            };
+            _db.Backups.Add(backup);
+
+            var log = new LogEntry
+            {
+                Fecha = DateTime.UtcNow,
+                Usuario = isAutomatic ? "SYSTEM" : "AUTOMATION",
+                Empresa = empresa.Nombre,
+                Accion = isAutomatic ? "BACKUP_AUTOMATICO" : "BACKUP_MANUAL",
+                Resultado = "OK",
+                Detalle = $"Archivo={Path.GetFileName(zipPath)}",
+                IpEquipo = ""
+            };
+            _db.Logs.Add(log);
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Backup completado para {Empresa}. Archivo: {Archivo}", empresa.Nombre, zipPath);
+
+            return new BackupResult { ZipPath = zipPath, Hash = hash, HashPath = hashPath };
         }
-        catch (Exception ex)
+        finally
         {
-            throw new IOException("Error al calcular/guardar hash del ZIP: " + ex.Message, ex);
+            semaphore.Release();
         }
-
-        // Registrar en DB
-        var backup = new BackupRecord
-        {
-            Empresa = empresa.Nombre,
-            Fecha = DateTime.UtcNow,
-            Archivo = Path.GetFileName(zipPath),
-            Hash = hash,
-            Ruta = zipPath,
-            Tipo = isAutomatic ? "AUTOMATICO" : "MANUAL"
-        };
-        _db.Backups.Add(backup);
-        await _db.SaveChangesAsync();
-
-        // Registro de log básico
-        var log = new LogEntry {
-            Fecha = DateTime.UtcNow,
-            Usuario = isAutomatic ? "SYSTEM" : "AUTOMATION",
-            Empresa = empresa.Nombre,
-            Accion = isAutomatic ? "BACKUP_AUTOMATICO" : "BACKUP_MANUAL",
-            Resultado = "OK",
-            Detalle = $"Archivo={Path.GetFileName(zipPath)}",
-            IpEquipo = ""
-        };
-        _db.Logs.Add(log);
-        await _db.SaveChangesAsync();
-
-        return new BackupResult { ZipPath = zipPath, Hash = hash, HashPath = zipPath + ".sha256" };
     }
 
     private string ComputeSha256(string filePath)
@@ -136,10 +151,14 @@ public class BackupService : IBackupService
         {
             foreach (var f in Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
             {
-                try { size += new FileInfo(f).Length; } catch { /* ignore inaccessible files */ }
+                try { size += new FileInfo(f).Length; } 
+                catch (Exception ex) { _logger.LogWarning(ex, "Archivo inaccesible: {File}", f); }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculando tamaño de directorio {Path}", path);
+        }
         return size;
     }
 
@@ -152,9 +171,16 @@ public class BackupService : IBackupService
         }
         foreach (var filePath in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
         {
-            var dest = filePath.Replace(sourceDir, destDir);
-            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-            File.Copy(filePath, dest, true);
+            try
+            {
+                var dest = filePath.Replace(sourceDir, destDir);
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                File.Copy(filePath, dest, true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error copiando archivo {File}", filePath);
+            }
         }
     }
 }

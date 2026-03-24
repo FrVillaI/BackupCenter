@@ -11,6 +11,8 @@
     <ProjectReference Include="../BackupCenter.Infrastructure/BackupCenter.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -19,7 +21,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.2" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.5" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.10.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
     <PackageReference Include="NDbfReader" Version="2.4.0" />
   </ItemGroup>
