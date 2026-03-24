@@ -7,11 +7,17 @@ interface JwtResponse { token: string; }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+
   private tokenKey = 'token';
+
+  // CAMBIO CLAVE: URL ABSOLUTA A LA API
+  private apiUrl = 'http://localhost:5000/api/auth'; 
+
+
   constructor(private http: HttpClient, private router: Router) {}
 
   login(username: string, password: string): Observable<JwtResponse> {
-    return this.http.post<JwtResponse>('/api/auth/login', { username, password }).pipe(
+    return this.http.post<JwtResponse>(`${this.apiUrl}/login`, { username, password }).pipe(
       tap(res => {
         if (res?.token) {
           localStorage.setItem(this.tokenKey, res.token);
@@ -28,6 +34,7 @@ export class AuthService {
   getToken(): string | null {
     return localStorage.getItem(this.tokenKey);
   }
+
   isLoggedIn(): boolean {
     return !!this.getToken();
   }

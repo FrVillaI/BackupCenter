@@ -96,6 +96,19 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 // ----------------------------------------
+// CORS (permite Angular en localhost:4200)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:4200")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
+
+// ----------------------------------------
 // Construir app
 var app = builder.Build();
 
@@ -113,6 +126,10 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+
+// IMPORTANTE: CORS antes de auth
+app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
