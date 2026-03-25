@@ -16,9 +16,7 @@ export interface Empresa {
 export class EmpresaService {
   constructor(private http: HttpClient) {}
   getEmpresas(): Observable<Empresa[]> {
-  const token = localStorage.getItem('token');
   return this.http.get<Empresa[]>('/api/empresas', {
-    headers: { Authorization: `Bearer ${token}` }
   });
 }
 }

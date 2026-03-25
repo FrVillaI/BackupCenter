@@ -76,9 +76,11 @@ export class DashboardComponent implements OnInit {
   }
 
   // ── Import DBF ─────────────────────────────────────────────
-  importDbf(): void {
-    if (!this.importPath) return void alert('Debe ingresar una ruta válida');
-    this.http.post('/api/ImportDbf', { path: this.importPath }).subscribe({
+importDbf(): void {
+  if (!this.importPath) return alert('Debe ingresar una ruta válida');
+
+  this.http.post(`/api/ImportDbf?path=${encodeURIComponent(this.importPath)}`, {})
+    .subscribe({
       next: res => {
         console.log('ImportDbf realizado', res);
         alert('Importación exitosa');
@@ -89,5 +91,5 @@ export class DashboardComponent implements OnInit {
         alert('Error al importar DBF');
       }
     });
-  }
+}
 }
