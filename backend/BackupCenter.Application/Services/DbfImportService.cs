@@ -6,104 +6,124 @@ using Microsoft.Extensions.Logging;
 using BackupCenter.Data;
 using BackupCenter.Domain.Entities;
 using BackupCenter.Application.Interfaces;
+using BackupCenter.Application.DTOs;
 using NDbfReader;
 
-namespace BackupCenter.Application.Services;
-
-public class DbfImportService : IDbfImportService
+namespace BackupCenter.Application.Services
 {
-    private readonly BackupCenterDbContext _db;
-    private readonly ILogger<DbfImportService> _logger;
-
-    public DbfImportService(BackupCenterDbContext db, ILogger<DbfImportService> logger)
+    public class DbfImportService : IDbfImportService
     {
-        _db = db;
-        _logger = logger;
-    }
+        private readonly BackupCenterDbContext _db;
+        private readonly ILogger<DbfImportService> _logger;
 
-    public async Task ImportAsync(string dbfPath)
-    {
-        if (string.IsNullOrWhiteSpace(dbfPath))
+        public DbfImportService(BackupCenterDbContext db, ILogger<DbfImportService> logger)
         {
-            _logger.LogWarning("Ruta DBF vacía o nula.");
-            return;
+            _db = db;
+            _logger = logger;
         }
 
-        if (!File.Exists(dbfPath))
+        public async Task<ImportResult> ImportAsync(string dbfPath)
         {
-            _logger.LogError("Archivo DBF no encontrado: {Path}", dbfPath);
-            return;
-        }
+            var result = new ImportResult();
 
-        try
-        {
-            using var table = Table.Open(dbfPath);
-            var reader = table.OpenReader();
-
-            while (reader.Read())
+            if (string.IsNullOrWhiteSpace(dbfPath))
             {
-                var nombre = reader.GetString("EMPRESA")?.Trim()
-                             ?? reader.GetString("NOMBRE")?.Trim();
-
-                if (string.IsNullOrWhiteSpace(nombre))
-                {
-                    _logger.LogWarning("Registro ignorado por nombre vacío.");
-                    continue;
-                }
-
-                var ruta = reader.GetString("RUTA_ORIGEN") ?? reader.GetString("RUTA");
-                var frecuencia = reader.GetString("FRECUENCIA");
-                var hora = reader.GetString("HORA") ?? reader.GetString("HORARIO");
-
-                int activo = SafeGetInt(reader, "ACTIVO");
-                DateTime? ultima = SafeGetDate(reader, "ULTIMA_COPIA");
-
-                var existing = await _db.Empresas
-                    .FirstOrDefaultAsync(e => e.Nombre == nombre);
-
-                if (existing != null)
-                {
-                    existing.RutaOrigen = ruta ?? existing.RutaOrigen;
-                    existing.Activa = activo != 0;
-                    existing.Frecuencia = frecuencia ?? existing.Frecuencia;
-                    existing.HoraProgramada = hora ?? existing.HoraProgramada;
-                    existing.UltimaCopia = ultima;
-
-                    _db.Empresas.Update(existing);
-                }
-                else
-                {
-                    _db.Empresas.Add(new Empresa
-                    {
-                        Nombre = nombre,
-                        RutaOrigen = ruta ?? string.Empty,
-                        Activa = activo != 0,
-                        Frecuencia = frecuencia ?? string.Empty,
-                        HoraProgramada = hora ?? string.Empty,
-                        UltimaCopia = ultima
-                    });
-                }
+                _logger.LogWarning("Ruta DBF vacía o nula.");
+                return result;
             }
 
-            await _db.SaveChangesAsync();
-            _logger.LogInformation("Importación DBF completada: {Path}", dbfPath);
+            if (!File.Exists(dbfPath))
+            {
+                _logger.LogError("Archivo DBF no encontrado: {Path}", dbfPath);
+                return result;
+            }
+
+            try
+            {
+                using var table = Table.Open(dbfPath);
+                var reader = table.OpenReader();
+
+                // Log de columnas para debug
+                foreach (var col in table.Columns)
+                    _logger.LogInformation("Campo DBF detectado: {Field} ({Type})", col.Name, col.Type);
+
+                while (reader.Read())
+                {
+                    result.Leidos++;
+
+                    try
+                    {
+                        // Campos correctos según tu EMPRESAS.DBF
+                        var nombre = reader.GetString("EMPRESA")?.Trim();
+                        var ruta = reader.GetString("RUTA")?.Trim();
+                        int activo = SafeGetInt(reader, "ACTIVOS");
+                        DateTime? ultima = SafeGetDate(reader, "FTP_ULTIMO"); // ejemplo de fecha
+
+                        if (string.IsNullOrWhiteSpace(nombre))
+                        {
+                            result.Errores++;
+                            continue;
+                        }
+
+                        // Buscar existente por nombre
+                        var existing = await _db.Empresas
+                            .FirstOrDefaultAsync(e => e.Nombre == nombre);
+
+                        if (existing != null)
+                        {
+                            existing.RutaOrigen = ruta ?? existing.RutaOrigen;
+                            existing.Activa = activo != 0;
+                            existing.UltimaCopia = ultima;
+
+                            _db.Empresas.Update(existing);
+                        }
+                        else
+                        {
+                            _db.Empresas.Add(new Empresa
+                            {
+                                Nombre = nombre,
+                                RutaOrigen = ruta ?? string.Empty,
+                                Activa = activo != 0,
+                                UltimaCopia = ultima
+                            });
+
+                            result.Insertados++;
+                        }
+                    }
+                    catch (Exception exRow)
+                    {
+                        result.Errores++;
+                        _logger.LogWarning(exRow, "Error procesando registro DBF.");
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Importación completada. Leídos: {Leidos}, Insertados: {Insertados}, Errores: {Errores}",
+                    result.Leidos, result.Insertados, result.Errores
+                );
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al importar DBF: {Path}", dbfPath);
+                throw;
+            }
         }
-        catch (Exception ex)
+
+        // Métodos auxiliares seguros
+        private int SafeGetInt(Reader reader, string field)
         {
-            _logger.LogError(ex, "Error al importar DBF: {Path}", dbfPath);
+            try { return reader.GetInt32(field); }
+            catch { return 0; }
         }
-    }
 
-    // Métodos auxiliares seguros
-    private int SafeGetInt(Reader reader, string field)
-    {
-        try { return reader.GetInt32(field); }
-        catch { return 0; }
-    }
-
-    private DateTime? SafeGetDate(Reader reader, string field)
-    {
-        try { return reader.GetDateTime(field); }
-        catch { return null; }
+        private DateTime? SafeGetDate(Reader reader, string field)
+        {
+            try { return reader.GetDateTime(field); }
+            catch { return null; }
+        }
     }
 }
