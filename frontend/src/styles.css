@@ -590,3 +590,47 @@
 
   .dash-card-date-label::after { content: ':'; }
 }
+
+/* OVERLAY */
+.dash-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.dash-overlay-box {
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.dash-overlay-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #ccc;
+  border-top: 4px solid #1a56db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: auto;
+}
+
+/* TOAST */
+.dash-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #1a56db;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  z-index: 9999;
+  font-size: 14px;
+}

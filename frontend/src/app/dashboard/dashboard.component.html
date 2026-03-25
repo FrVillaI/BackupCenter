@@ -1,5 +1,19 @@
 <div class="dash-page">
 
+  <!-- OVERLAY GLOBAL (backup masivo) -->
+  <div class="dash-overlay" *ngIf="isBulkLoading">
+    <div class="dash-overlay-box">
+      <div class="dash-overlay-spinner"></div>
+      <p>Realizando backup masivo...</p>
+      <small>{{ bulkProgress }} / {{ bulkTotal }}</small>
+    </div>
+  </div>
+
+  <!--  TOAST -->
+  <div class="dash-toast" *ngIf="toastMessage">
+    {{ toastMessage }}
+  </div>
+
   <!-- ── Header ─────────────────────────────────────────────── -->
   <header class="dash-header">
     <div class="dash-header-left">
@@ -12,16 +26,20 @@
       <div class="dash-import">
         <label class="dash-import-label" for="importPath">Ruta origen</label>
         <div class="dash-import-group">
-          <svg class="dash-import-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          <input
-            id="importPath"
-            type="text"
-            class="dash-import-input"
-            [(ngModel)]="importPath"
-            placeholder="C:\FENIX\DATAFENIX\..."
-          />
+          <svg class="dash-import-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+          <input id="importPath" type="text" class="dash-import-input" [(ngModel)]="importPath"
+            placeholder="C:\FENIX\DATAFENIX\..." />
           <button class="dash-import-btn" (click)="importDbf()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="16 16 12 12 8 16" />
+              <line x1="12" y1="12" x2="12" y2="21" />
+              <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3" />
+            </svg>
             Importar
           </button>
         </div>
@@ -35,12 +53,13 @@
       <strong>{{ empresas.length }}</strong> empresas
       <span *ngIf="selectedIds.size > 0" class="dash-count-selected">· {{ selectedIds.size }} seleccionadas</span>
     </span>
-    <button
-      class="dash-bulk-btn"
-      (click)="startBackupSelected()"
-      [disabled]="selectedIds.size === 0"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <button class="dash-bulk-btn" (click)="startBackupSelected()" [disabled]="selectedIds.size === 0 || isBulkLoading">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
       Backup masivo
       <span class="dash-bulk-badge" *ngIf="selectedIds.size > 0">{{ selectedIds.size }}</span>
     </button>
@@ -49,24 +68,15 @@
   <!-- ── Cards list ──────────────────────────────────────────── -->
   <div class="dash-list">
 
-    <div
-      class="dash-card"
-      *ngFor="let e of empresas; let i = index"
-      [class.is-selected]="selectedIds.has(e.id)"
-      [class.is-expanded]="expandedId === e.id"
-      [class.is-loading]="loadingIds.has(e.id)"
-    >
+    <div class="dash-card" *ngFor="let e of empresas; let i = index" [class.is-selected]="selectedIds.has(e.id)"
+      [class.is-expanded]="expandedId === e.id" [class.is-loading]="loadingIds.has(e.id)">
       <!-- Card main row -->
       <div class="dash-card-main" (click)="toggleExpand(e.id)">
 
         <!-- Checkbox -->
         <div class="dash-card-check" (click)="$event.stopPropagation()">
           <label class="dash-checkbox">
-            <input
-              type="checkbox"
-              [checked]="selectedIds.has(e.id)"
-              (change)="toggleSelection(e.id, $event)"
-            />
+            <input type="checkbox" [checked]="selectedIds.has(e.id)" (change)="toggleSelection(e.id, $event)" />
             <span class="dash-checkbox-box"></span>
           </label>
         </div>
@@ -94,7 +104,10 @@
 
         <!-- Expand chevron -->
         <span class="dash-card-chevron">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </span>
 
       </div>
@@ -126,13 +139,16 @@
         </div>
 
         <div class="dash-detail-actions">
-          <button
-            class="dash-backup-btn"
-            (click)="backupSingle(e.id)"
-            [disabled]="loadingIds.has(e.id)"
-          >
+          <button class="dash-backup-btn" (click)="backupSingle(e.id)"
+            [disabled]="loadingIds.has(e.id) || isBulkLoading">
             <span class="dash-backup-spinner" *ngIf="loadingIds.has(e.id)"></span>
-            <svg *ngIf="!loadingIds.has(e.id)" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <svg *ngIf="!loadingIds.has(e.id)" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
             {{ loadingIds.has(e.id) ? 'Respaldando...' : 'Hacer backup ahora' }}
           </button>
         </div>
@@ -142,7 +158,12 @@
 
     <!-- Empty state -->
     <div class="dash-empty" *ngIf="empresas.length === 0">
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+      </svg>
       <p>No hay empresas registradas</p>
       <span>Importa una ruta DBF para comenzar</span>
     </div>
