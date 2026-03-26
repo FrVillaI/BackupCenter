@@ -35,7 +35,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddScoped<IDbfImportService, DbfImportService>();
 
-builder.Services.AddHostedService<BackupCenter.Infrastructure.Background.BackupSchedulerService>();
+builder.Services.AddHostedService<BackupWorker>();
 
 // ----------------------------------------
 // Controllers + Swagger

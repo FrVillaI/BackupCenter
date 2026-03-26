@@ -116,6 +116,9 @@ public class BackupService : IBackupService
             };
             _db.Backups.Add(backup);
 
+            // 🔥 Actualizar UltimaCopia solo una vez
+            empresa.UltimaCopia = DateTime.UtcNow;
+
             var log = new LogEntry
             {
                 Fecha = DateTime.UtcNow,

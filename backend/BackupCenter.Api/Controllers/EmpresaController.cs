@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using BackupCenter.Data;
 using Microsoft.EntityFrameworkCore;
+using BackupCenter.Application.DTOs;
 
 namespace BackupCenter.Api.Controllers;
 
@@ -48,5 +49,53 @@ public class EmpresasController : ControllerBase
             empresa.Nombre,
             empresa.Activa
         });
+    }
+
+    [HttpPut("{id}/config-backup")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> ConfigBackup(int id, [FromBody] ConfigBackupDto dto)
+    {
+        var empresa = await _db.Empresas.FindAsync(id);
+
+        if (empresa == null)
+            return NotFound();
+
+        if (dto.FrecuenciaHoras != 12 && dto.FrecuenciaHoras != 24)
+            return BadRequest("Frecuencia inválida");
+
+        empresa.FrecuenciaHoras = dto.FrecuenciaHoras;
+        empresa.HoraProgramada = dto.HoraProgramada;
+
+        await _db.SaveChangesAsync();
+
+        return Ok();
+    }
+
+    [HttpPut("{id}/config")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> UpdateConfig(int id, [FromBody] UpdateEmpresaConfigDto dto)
+    {
+        var empresa = await _db.Empresas.FindAsync(id);
+        if (empresa == null) return NotFound();
+
+        if (!TimeSpan.TryParse(dto.HoraProgramada, out var hora))
+        {
+            return BadRequest("Hora inválida. Formato esperado: HH:mm");
+        }
+
+        empresa.HoraProgramada = hora;
+
+        if (dto.FrecuenciaHoras != 12 && dto.FrecuenciaHoras != 24)
+        {
+            return BadRequest("Frecuencia inválida. Solo 12 o 24 horas permitidas");
+        }
+
+
+        empresa.FrecuenciaHoras = dto.FrecuenciaHoras;
+        empresa.HoraProgramada = hora;
+
+        await _db.SaveChangesAsync();
+
+        return Ok();
     }
 }

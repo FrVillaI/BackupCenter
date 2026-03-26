@@ -160,5 +160,19 @@ export class DashboardComponent implements OnInit {
       error: () => this.showToast('Error al cambiar estado')
     });
   }
+
+  guardarConfiguracion(e: Empresa): void {
+  this.http.put(`/api/empresas/${e.id}/config`, {
+    frecuenciaHoras: e.frecuenciaHoras,
+    horaProgramada: e.horaProgramada
+  }).subscribe({
+    next: () => {
+      this.showToast(`Configuración guardada (${e.nombre})`);
+    },
+    error: () => {
+      this.showToast(`Error guardando configuración`);
+    }
+  });
+}
 }
 

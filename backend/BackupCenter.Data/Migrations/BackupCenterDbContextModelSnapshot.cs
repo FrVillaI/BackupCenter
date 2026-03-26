@@ -60,12 +60,10 @@ namespace BackupCenter.Data.Migrations
                     b.Property<bool>("Activa")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Frecuencia")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                    b.Property<int>("FrecuenciaHoras")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<string>("HoraProgramada")
-                        .IsRequired()
+                    b.Property<TimeSpan>("HoraProgramada")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Nombre")
@@ -155,8 +153,8 @@ namespace BackupCenter.Data.Migrations
                         {
                             Id = 1,
                             Activo = true,
-                            FechaCreacion = new DateTime(2026, 3, 19, 21, 48, 48, 474, DateTimeKind.Utc).AddTicks(2272),
-                            PasswordHash = "$2a$11$0Q3uyedwzY.kqVIAqzEFIeyAZuccbKr79Sif3g4UDfhKWMO2GVzqG",
+                            FechaCreacion = new DateTime(2026, 3, 26, 20, 54, 54, 628, DateTimeKind.Utc).AddTicks(8249),
+                            PasswordHash = "$2a$11$nnd3.9laW40w0GlIeQajDugHcthYyoJ.aNl5/i.pJhEat7Iwp41NS",
                             Role = "ADMIN",
                             Username = "ads"
                         },
@@ -164,8 +162,8 @@ namespace BackupCenter.Data.Migrations
                         {
                             Id = 2,
                             Activo = true,
-                            FechaCreacion = new DateTime(2026, 3, 19, 21, 48, 48, 696, DateTimeKind.Utc).AddTicks(9074),
-                            PasswordHash = "$2a$11$RrSlBluTjAANBknGdaM2FexysvtW3C3nLnnN889uUgK.AMteT07g.",
+                            FechaCreacion = new DateTime(2026, 3, 26, 20, 54, 54, 857, DateTimeKind.Utc).AddTicks(956),
+                            PasswordHash = "$2a$11$np3wihGvEWMEMjjnbMXyP.CkFRVsMv5QFSXJMGhwbjG.PwVx85jG.",
                             Role = "GERENTE",
                             Username = "gerente"
                         });

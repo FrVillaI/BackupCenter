@@ -121,12 +121,15 @@
 
           <div class="dash-detail-item">
             <span class="dash-detail-label">Frecuencia</span>
-            <span class="dash-detail-value">{{ e.frecuencia || '—' }}</span>
+            <select [(ngModel)]="e.frecuenciaHoras" class="dash-select">
+              <option [value]="12">12 horas</option>
+              <option [value]="24">24 horas</option>
+            </select>
           </div>
 
           <div class="dash-detail-item">
             <span class="dash-detail-label">Hora programada</span>
-            <span class="dash-detail-value">{{ e.horaProgramada || '—' }}</span>
+            <input type="time" [(ngModel)]="e.horaProgramada" class="dash-input-time" />
           </div>
 
           <div class="dash-detail-item">
@@ -142,6 +145,9 @@
         </div>
 
         <div class="dash-detail-actions">
+          <button class="dash-save-btn" (click)="guardarConfiguracion(e)">
+            Guardar configuración
+          </button>
           <button class="dash-toggle-btn" (click)="toggleActiva(e.id)">
             {{ e.activa ? 'Desactivar' : 'Activar' }}
           </button>
@@ -214,12 +220,15 @@
 
           <div class="dash-detail-item">
             <span class="dash-detail-label">Frecuencia</span>
-            <span class="dash-detail-value">{{ e.frecuencia || '—' }}</span>
+            <select [(ngModel)]="e.frecuenciaHoras" class="dash-select">
+              <option [value]="12">12 horas</option>
+              <option [value]="24">24 horas</option>
+            </select>
           </div>
 
           <div class="dash-detail-item">
             <span class="dash-detail-label">Hora programada</span>
-            <span class="dash-detail-value">{{ e.horaProgramada || '—' }}</span>
+            <input type="time" [(ngModel)]="e.horaProgramada" class="dash-input-time" />
           </div>
 
           <div class="dash-detail-item">
@@ -235,6 +244,9 @@
         </div>
 
         <div class="dash-detail-actions">
+          <button class="dash-save-btn" (click)="guardarConfiguracion(e)">
+            Guardar configuración
+          </button>
           <button class="dash-toggle-btn" (click)="toggleActiva(e.id)">
             {{ e.activa ? 'Desactivar' : 'Activar' }}
           </button>

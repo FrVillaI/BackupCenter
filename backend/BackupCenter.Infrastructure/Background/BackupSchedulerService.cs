@@ -15,7 +15,7 @@ namespace BackupCenter.Infrastructure.Background;
 public class BackupSchedulerService : BackgroundService
 {
     private readonly IServiceProvider _services;
-    private static readonly ConcurrentDictionary<(int, string), bool> _backedUpToday = new();
+    private static readonly ConcurrentDictionary<(int, DateTime), bool> _backedUpToday = new();
     public BackupSchedulerService(IServiceProvider services)
     {
         _services = services;
@@ -34,14 +34,17 @@ public class BackupSchedulerService : BackgroundService
                 var backups = await db.Empresas.AsNoTracking().Where(e => e.Activa).ToListAsync(stoppingToken);
                 foreach (var e in backups)
                 {
-                    var horaProg = e.HoraProgramada?.Trim() ?? "";
-                    // Expect horaProg in HH:mm format
-                    if (!string.IsNullOrWhiteSpace(horaProg) && horaProg == hhmm)
+                    var ahora = DateTime.Now;
+                    var horaActual = ahora.TimeOfDay;
+
+                    var diferencia = (horaActual - e.HoraProgramada).TotalMinutes;
+
+                    if (Math.Abs(diferencia) < 1)
                     {
-                        var key = (e.Id, hhmm);
+                        var key = (e.Id, ahora.Date);
+
                         if (_backedUpToday.TryAdd(key, true))
                         {
-                            // Ejecutar backup de forma asíncrona (fire-and-forget dentro del scope)
                             try
                             {
                                 var backupService = scope.ServiceProvider.GetRequiredService<IBackupService>();
@@ -49,7 +52,6 @@ public class BackupSchedulerService : BackgroundService
                             }
                             catch (Exception ex)
                             {
-                                // registrar en logs de forma local
                                 try
                                 {
                                     var log = new BackupCenter.Domain.Entities.LogEntry
@@ -65,7 +67,7 @@ public class BackupSchedulerService : BackgroundService
                                     db.Logs.Add(log);
                                     await db.SaveChangesAsync();
                                 }
-                                catch {}
+                                catch { }
                             }
                         }
                     }

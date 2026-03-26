@@ -6,7 +6,7 @@ public class Empresa
     public string Nombre { get; set; } = string.Empty;
     public string RutaOrigen { get; set; } = string.Empty;
     public bool Activa { get; set; } = true;
-    public string Frecuencia { get; set; } = string.Empty;
-    public string HoraProgramada { get; set; } = string.Empty;
+    public int FrecuenciaHoras { get; set; } // 12 o 24
+    public TimeSpan HoraProgramada { get; set; }
     public DateTime? UltimaCopia { get; set; }
 }

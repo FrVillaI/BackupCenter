@@ -7,8 +7,8 @@ export interface Empresa {
   nombre: string;
   rutaOrigen: string;
   activa: boolean;
-  frecuencia: string;
-  horaProgramada: string;
+  frecuenciaHoras: number;   
+  horaProgramada: string;    
   ultimaCopia?: string;
 }
 
