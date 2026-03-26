@@ -68,7 +68,9 @@
   <!-- ── Cards list ──────────────────────────────────────────── -->
   <div class="dash-list">
 
-    <div class="dash-card" *ngFor="let e of empresas; let i = index" [class.is-selected]="selectedIds.has(e.id)"
+    <h2 class="dash-section-title">Empresas Activas</h2>
+
+    <div class="dash-card" *ngFor="let e of empresasActivas; let i = index" [class.is-selected]="selectedIds.has(e.id)"
       [class.is-expanded]="expandedId === e.id" [class.is-loading]="loadingIds.has(e.id)">
       <!-- Card main row -->
       <div class="dash-card-main" (click)="toggleExpand(e.id)">
@@ -76,7 +78,8 @@
         <!-- Checkbox -->
         <div class="dash-card-check" (click)="$event.stopPropagation()">
           <label class="dash-checkbox">
-            <input type="checkbox" [checked]="selectedIds.has(e.id)" (change)="toggleSelection(e.id, $event)" />
+            <input type="checkbox" [checked]="selectedIds.has(e.id)" (change)="toggleSelection(e.id, $event)"
+              [disabled]="!e.activa" />
             <span class="dash-checkbox-box"></span>
           </label>
         </div>
@@ -139,6 +142,102 @@
         </div>
 
         <div class="dash-detail-actions">
+          <button class="dash-toggle-btn" (click)="toggleActiva(e.id)">
+            {{ e.activa ? 'Desactivar' : 'Activar' }}
+          </button>
+          <button class="dash-backup-btn" (click)="backupSingle(e.id)"
+            [disabled]="!e.activa || loadingIds.has(e.id) || isBulkLoading">
+            <span class="dash-backup-spinner" *ngIf="loadingIds.has(e.id)"></span>
+            <svg *ngIf="!loadingIds.has(e.id)" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {{ loadingIds.has(e.id) ? 'Respaldando...' : 'Hacer backup ahora' }}
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <h2 class="dash-section-title is-inactive">Empresas Inactivas</h2>
+
+    <div class="dash-card is-inactive" *ngFor="let e of empresasInactivas; let i = index"
+      [class.is-expanded]="expandedId === e.id">
+      <!-- Card main row -->
+      <div class="dash-card-main" (click)="toggleExpand(e.id)">
+
+        <!-- Checkbox -->
+        <div class="dash-card-check" (click)="$event.stopPropagation()">
+          <label class="dash-checkbox">
+            <input type="checkbox" disabled />
+            <span class="dash-checkbox-box"></span>
+          </label>
+        </div>
+
+        <!-- Index -->
+        <span class="dash-card-index">{{ (i + 1).toString().padStart(2, '0') }}</span>
+
+        <!-- Name + path -->
+        <div class="dash-card-info">
+          <span class="dash-card-name">{{ e.nombre }}</span>
+          <span class="dash-card-path">{{ e.rutaOrigen }}</span>
+        </div>
+
+        <!-- Status badge -->
+        <span class="dash-badge" [class.is-active]="e.activa" [class.is-inactive]="!e.activa">
+          <span class="dash-badge-dot"></span>
+          {{ e.activa ? 'Activa' : 'Inactiva' }}
+        </span>
+
+        <!-- Last backup -->
+        <span class="dash-card-date">
+          <span class="dash-card-date-label">Última copia</span>
+          <span class="dash-card-date-value">{{ formatDate(e.ultimaCopia) }}</span>
+        </span>
+
+        <!-- Expand chevron -->
+        <span class="dash-card-chevron">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+
+      </div>
+
+      <!-- Expanded detail panel -->
+      <div class="dash-card-detail">
+        <div class="dash-detail-grid">
+
+          <div class="dash-detail-item">
+            <span class="dash-detail-label">Frecuencia</span>
+            <span class="dash-detail-value">{{ e.frecuencia || '—' }}</span>
+          </div>
+
+          <div class="dash-detail-item">
+            <span class="dash-detail-label">Hora programada</span>
+            <span class="dash-detail-value">{{ e.horaProgramada || '—' }}</span>
+          </div>
+
+          <div class="dash-detail-item">
+            <span class="dash-detail-label">Ruta completa</span>
+            <span class="dash-detail-value dash-detail-mono">{{ e.rutaOrigen }}</span>
+          </div>
+
+          <div class="dash-detail-item">
+            <span class="dash-detail-label">ID interno</span>
+            <span class="dash-detail-value dash-detail-mono">#{{ e.id }}</span>
+          </div>
+
+        </div>
+
+        <div class="dash-detail-actions">
+          <button class="dash-toggle-btn" (click)="toggleActiva(e.id)">
+            {{ e.activa ? 'Desactivar' : 'Activar' }}
+          </button>
           <button class="dash-backup-btn" (click)="backupSingle(e.id)"
             [disabled]="loadingIds.has(e.id) || isBulkLoading">
             <span class="dash-backup-spinner" *ngIf="loadingIds.has(e.id)"></span>
@@ -157,7 +256,7 @@
     </div>
 
     <!-- Empty state -->
-    <div class="dash-empty" *ngIf="empresas.length === 0">
+    <div class="dash-empty" *ngIf="empresasActivas.length === 0 && empresasInactivas.length === 0">
       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" />

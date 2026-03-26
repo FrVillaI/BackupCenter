@@ -28,4 +28,25 @@ public class EmpresasController : ControllerBase
         var empresas = await query.ToListAsync();
         return Ok(empresas);
     }
+
+    [HttpPut("{id}/toggle-activa")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> ToggleActiva(int id)
+    {
+        var empresa = await _db.Empresas.FirstOrDefaultAsync(e => e.Id == id);
+
+        if (empresa == null)
+            return NotFound();
+
+        empresa.Activa = !empresa.Activa;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            empresa.Id,
+            empresa.Nombre,
+            empresa.Activa
+        });
+    }
 }

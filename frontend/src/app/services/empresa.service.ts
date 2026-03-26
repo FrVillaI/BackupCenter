@@ -14,9 +14,14 @@ export interface Empresa {
 
 @Injectable({ providedIn: 'root' })
 export class EmpresaService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
   getEmpresas(): Observable<Empresa[]> {
-  return this.http.get<Empresa[]>('/api/empresas', {
-  });
-}
+    return this.http.get<Empresa[]>('/api/empresas', {
+    });
+  }
+
+  toggleActiva(id: number) {
+    return this.http.put(`/api/empresas/${id}/toggle-activa`, {});
+  }
+
 }

@@ -32,7 +32,7 @@ public class BackupService : IBackupService
         _db = db;
         _logger = logger;
 
-        _backupRoot = config["BackupSettings:RootPath"] 
+        _backupRoot = config["BackupSettings:RootPath"]
               ?? throw new Exception("Backup root path no configurado");
 
         Directory.CreateDirectory(_backupRoot);
@@ -41,7 +41,11 @@ public class BackupService : IBackupService
     public async Task<BackupResult> CreateBackupAsync(int empresaId, string? overridePath = null, bool isAutomatic = false)
     {
         var empresa = await _db.Empresas.FirstOrDefaultAsync(e => e.Id == empresaId);
-        if (empresa == null) throw new Exception($"Empresa {empresaId} no encontrada");
+        if (empresa == null)
+            throw new Exception($"Empresa {empresaId} no encontrada");
+
+        if (!empresa.Activa)
+            throw new InvalidOperationException($"La empresa '{empresa.Nombre}' está inactiva y no puede generar backups");
 
         // Lock por empresa para evitar concurrencia
         var semaphore = _empresaLocks.GetOrAdd(empresaId, _ => new SemaphoreSlim(1, 1));
@@ -151,7 +155,7 @@ public class BackupService : IBackupService
         {
             foreach (var f in Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
             {
-                try { size += new FileInfo(f).Length; } 
+                try { size += new FileInfo(f).Length; }
                 catch (Exception ex) { _logger.LogWarning(ex, "Archivo inaccesible: {File}", f); }
             }
         }

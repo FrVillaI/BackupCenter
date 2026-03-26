@@ -14,6 +14,8 @@ import { HttpClient } from '@angular/common/http';
 })
 export class DashboardComponent implements OnInit {
   empresas: Empresa[] = [];
+  empresasActivas: Empresa[] = [];
+  empresasInactivas: Empresa[] = [];
   selectedIds: Set<number> = new Set<number>();
   loadingIds: Set<number> = new Set<number>();
   importPath: string = '';
@@ -37,7 +39,12 @@ export class DashboardComponent implements OnInit {
   }
 
   loadEmpresas(): void {
-    this.es.getEmpresas().subscribe(data => this.empresas = data);
+    this.es.getEmpresas().subscribe(data => {
+      this.empresas = data;
+
+      this.empresasActivas = data.filter(e => e.activa);
+      this.empresasInactivas = data.filter(e => !e.activa);
+    });
   }
 
   // ── Expand / collapse card ─────────────────────────────────
@@ -60,6 +67,12 @@ export class DashboardComponent implements OnInit {
 
   // ── Single backup ──────────────────────────────────────────
   backupSingle(id: number): void {
+    const empresa = this.empresas.find(e => e.id === id);
+    if (!empresa?.activa) {
+      this.showToast('Empresa inactiva no puede hacer backup');
+      return;
+    }
+
     this.loadingIds.add(id);
 
     this.bs.backup(id).subscribe({
@@ -82,7 +95,10 @@ export class DashboardComponent implements OnInit {
 
     this.isBulkLoading = true;
 
-    const ids = Array.from(this.selectedIds);
+    const ids = Array.from(this.selectedIds).filter(id => {
+      const e = this.empresas.find(emp => emp.id === id);
+      return e?.activa;
+    });
 
     this.bulkTotal = ids.length;
     this.bulkProgress = 0;
@@ -126,13 +142,23 @@ export class DashboardComponent implements OnInit {
         }
       });
   }
-  
+
   showToast(message: string): void {
     this.toastMessage = message;
 
     setTimeout(() => {
       this.toastMessage = '';
     }, 3000);
+  }
+
+  toggleActiva(id: number): void {
+    this.es.toggleActiva(id).subscribe({
+      next: () => {
+        this.showToast('Estado actualizado');
+        this.loadEmpresas(); // recarga listas separadas
+      },
+      error: () => this.showToast('Error al cambiar estado')
+    });
   }
 }
 

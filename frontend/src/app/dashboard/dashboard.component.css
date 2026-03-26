@@ -1,0 +1,41 @@
+.dash-card.is-inactive {
+  opacity: 0.65;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.dash-card.is-inactive:hover {
+  opacity: 0.8;
+  transform: none; /* evita efecto hover fuerte */
+  box-shadow: none;
+}
+
+.dash-card.is-inactive .dash-card-name,
+.dash-card.is-inactive .dash-card-path,
+.dash-card.is-inactive .dash-card-date {
+  color: #6b7280;
+}
+
+.dash-badge.is-inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.dash-section-title.is-inactive {
+  color: #9ca3af;
+}
+
+.dash-card.is-inactive .dash-checkbox-box {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.dash-card.is-inactive {
+  border-left: 4px solid #9ca3af;
+}
+
+.dash-card.is-inactive .dash-card-name::after {
+  content: " (Inactiva)";
+  font-size: 12px;
+  color: #9ca3af;
+}
