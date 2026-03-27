@@ -10,6 +10,12 @@ export interface Empresa {
   frecuenciaHoras: number;   
   horaProgramada: string;    
   ultimaCopia?: string;
+
+  lastBackup?: {
+    zip: string;
+    hash: string;
+    hashPath: string;
+  };
 }
 
 @Injectable({ providedIn: 'root' })

@@ -66,28 +66,36 @@ export class DashboardComponent implements OnInit {
   }
 
   // ── Single backup ──────────────────────────────────────────
-  backupSingle(id: number): void {
-    const empresa = this.empresas.find(e => e.id === id);
-    if (!empresa?.activa) {
-      this.showToast('Empresa inactiva no puede hacer backup');
-      return;
-    }
-
-    this.loadingIds.add(id);
-
-    this.bs.backup(id).subscribe({
-      next: res => {
-        console.log(`Backup realizado para empresa ${id}`, res);
-        this.updateUltimaCopia(id);
-        this.showToast(`Backup completado (Empresa ${id})`);
-      },
-      error: err => {
-        console.error(`Error al respaldar empresa ${id}`, err);
-        this.showToast(`Error en backup (Empresa ${id})`);
-      },
-      complete: () => this.loadingIds.delete(id)
-    });
+backupSingle(id: number): void {
+  const empresa = this.empresas.find(e => e.id === id);
+  if (!empresa?.activa) {
+    this.showToast('Empresa inactiva no puede hacer backup');
+    return;
   }
+
+  this.loadingIds.add(id);
+
+  this.bs.backup(id).subscribe({
+    next: res => {
+      console.log(`Backup realizado para empresa ${id}`, res);
+
+      // 🔹 Guardamos información del backup en la empresa
+      empresa.lastBackup = {
+        zip: res.zip,
+        hash: res.hash,
+        hashPath: res.hashPath
+      };
+
+      this.updateUltimaCopia(id); // fecha local
+      this.showToast(`Backup completado (Empresa ${id})`);
+    },
+    error: err => {
+      console.error(`Error al respaldar empresa ${id}`, err);
+      this.showToast(`Error en backup (Empresa ${id})`);
+    },
+    complete: () => this.loadingIds.delete(id)
+  });
+}
 
   // ── Bulk backup ────────────────────────────────────────────
   startBackupSelected(): void {

@@ -142,6 +142,21 @@
             <span class="dash-detail-value dash-detail-mono">#{{ e.id }}</span>
           </div>
 
+          <div class="dash-detail-item" *ngIf="e.lastBackup">
+            <span class="dash-detail-label">Archivo ZIP</span>
+            <span class="dash-detail-value dash-detail-mono">{{ e.lastBackup.zip || '—' }}</span>
+          </div>
+
+          <div class="dash-detail-item" *ngIf="e.lastBackup">
+            <span class="dash-detail-label">Hash SHA-256</span>
+            <span class="dash-detail-value dash-detail-mono">{{ e.lastBackup.hash || '—' }}</span>
+          </div>
+
+          <div class="dash-detail-item" *ngIf="e.lastBackup">
+            <span class="dash-detail-label">Ruta backup</span>
+            <span class="dash-detail-value dash-detail-mono">{{ e.lastBackup.hashPath  || '—' }}</span>
+          </div>
+
         </div>
 
         <div class="dash-detail-actions">
