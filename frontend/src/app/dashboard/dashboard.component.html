@@ -154,7 +154,7 @@
 
           <div class="dash-detail-item" *ngIf="e.lastBackup">
             <span class="dash-detail-label">Ruta backup</span>
-            <span class="dash-detail-value dash-detail-mono">{{ e.lastBackup.hashPath  || '—' }}</span>
+            <span class="dash-detail-value dash-detail-mono">{{ e.lastBackup.hashPath || '—' }}</span>
           </div>
 
         </div>
@@ -166,8 +166,8 @@
           <button class="dash-toggle-btn" (click)="toggleActiva(e.id)">
             {{ e.activa ? 'Desactivar' : 'Activar' }}
           </button>
-          <button class="dash-backup-btn" (click)="backupSingle(e.id)"
-            [disabled]="!e.activa || loadingIds.has(e.id) || isBulkLoading">
+         <button class="dash-backup-btn" (click)="backupManualWithAuth(e.id)"
+        [disabled]="!e.activa || loadingIds.has(e.id) || isBulkLoading">
             <span class="dash-backup-spinner" *ngIf="loadingIds.has(e.id)"></span>
             <svg *ngIf="!loadingIds.has(e.id)" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
               viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
@@ -295,5 +295,9 @@
     </div>
 
   </div>
+
+  <!-- LOGIN MODAL -->
+  <app-login-modal *ngIf="showLoginModalFlag" (success)="onLoginSuccess($event)" (cancel)="onLoginCancel()">
+  </app-login-modal>
 
 </div>

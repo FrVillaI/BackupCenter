@@ -4,15 +4,22 @@ import { FormsModule } from '@angular/forms';
 import { Empresa, EmpresaService } from '../services/empresa.service';
 import { BackupService } from '../services/backup.service';
 import { HttpClient } from '@angular/common/http';
+import { LoginModalComponent } from '../login-modal/login-modal.component';
+
+
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule,LoginModalComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
+
 export class DashboardComponent implements OnInit {
+  showLoginModalFlag = false;
+  backupPendingId: number | null = null;
+  authToken: string = '';
   empresas: Empresa[] = [];
   empresasActivas: Empresa[] = [];
   empresasInactivas: Empresa[] = [];
@@ -66,36 +73,36 @@ export class DashboardComponent implements OnInit {
   }
 
   // ── Single backup ──────────────────────────────────────────
-backupSingle(id: number): void {
-  const empresa = this.empresas.find(e => e.id === id);
-  if (!empresa?.activa) {
-    this.showToast('Empresa inactiva no puede hacer backup');
-    return;
+  backupSingle(id: number): void {
+    const empresa = this.empresas.find(e => e.id === id);
+    if (!empresa?.activa) {
+      this.showToast('Empresa inactiva no puede hacer backup');
+      return;
+    }
+
+    this.loadingIds.add(id);
+
+    this.bs.backup(id).subscribe({
+      next: res => {
+        console.log(`Backup realizado para empresa ${id}`, res);
+
+        // 🔹 Guardamos información del backup en la empresa
+        empresa.lastBackup = {
+          zip: res.zip,
+          hash: res.hash,
+          hashPath: res.hashPath
+        };
+
+        this.updateUltimaCopia(id); // fecha local
+        this.showToast(`Backup completado (Empresa ${id})`);
+      },
+      error: err => {
+        console.error(`Error al respaldar empresa ${id}`, err);
+        this.showToast(`Error en backup (Empresa ${id})`);
+      },
+      complete: () => this.loadingIds.delete(id)
+    });
   }
-
-  this.loadingIds.add(id);
-
-  this.bs.backup(id).subscribe({
-    next: res => {
-      console.log(`Backup realizado para empresa ${id}`, res);
-
-      // 🔹 Guardamos información del backup en la empresa
-      empresa.lastBackup = {
-        zip: res.zip,
-        hash: res.hash,
-        hashPath: res.hashPath
-      };
-
-      this.updateUltimaCopia(id); // fecha local
-      this.showToast(`Backup completado (Empresa ${id})`);
-    },
-    error: err => {
-      console.error(`Error al respaldar empresa ${id}`, err);
-      this.showToast(`Error en backup (Empresa ${id})`);
-    },
-    complete: () => this.loadingIds.delete(id)
-  });
-}
 
   // ── Bulk backup ────────────────────────────────────────────
   startBackupSelected(): void {
@@ -170,17 +177,46 @@ backupSingle(id: number): void {
   }
 
   guardarConfiguracion(e: Empresa): void {
-  this.http.put(`/api/empresas/${e.id}/config`, {
-    frecuenciaHoras: e.frecuenciaHoras,
-    horaProgramada: e.horaProgramada
-  }).subscribe({
-    next: () => {
-      this.showToast(`Configuración guardada (${e.nombre})`);
-    },
-    error: () => {
-      this.showToast(`Error guardando configuración`);
+    this.http.put(`/api/empresas/${e.id}/config`, {
+      frecuenciaHoras: e.frecuenciaHoras,
+      horaProgramada: e.horaProgramada
+    }).subscribe({
+      next: () => {
+        this.showToast(`Configuración guardada (${e.nombre})`);
+      },
+      error: () => {
+        this.showToast(`Error guardando configuración`);
+      }
+    });
+  }
+
+  // Llamar login si no hay token
+  backupManualWithAuth(id: number) {
+    if (!this.authToken) {
+      this.backupPendingId = id;
+      this.showLoginModalFlag = true; // abre modal
+      return;
     }
-  });
-}
+
+    this.backupSingle(id); // si ya hay token
+  }
+
+  // Cuando el login es exitoso
+  onLoginSuccess(token: string) {
+    this.authToken = token;
+    this.showLoginModalFlag = false;
+
+    if (this.backupPendingId !== null) {
+      this.backupSingle(this.backupPendingId);
+      this.backupPendingId = null;
+    }
+  }
+
+  // Cuando se cancela login
+  onLoginCancel() {
+    this.showLoginModalFlag = false;
+    this.backupPendingId = null;
+  }
+
 }
 

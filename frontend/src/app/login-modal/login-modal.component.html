@@ -1,0 +1,21 @@
+<div class="modal-backdrop">
+      <div class="modal-box">
+        <h2>Autenticación requerida</h2>
+        <form (ngSubmit)="login()">
+          <label>
+            Usuario:
+            <input type="text" [(ngModel)]="username" name="username" required />
+          </label>
+          <p></p>
+          <label>
+            Contraseña:
+            <input type="password" [(ngModel)]="password" name="password" required />
+          </label>
+          <div class="modal-actions">
+            <button type="submit">Iniciar sesión</button>
+            <button type="button" (click)="cancel.emit()">Cancelar</button>
+          </div>
+        </form>
+        <p class="error" *ngIf="error">{{ error }}</p>
+      </div>
+    </div>
