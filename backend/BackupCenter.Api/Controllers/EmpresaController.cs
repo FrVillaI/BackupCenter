@@ -4,6 +4,8 @@ using BackupCenter.Data;
 using Microsoft.EntityFrameworkCore;
 using BackupCenter.Application.DTOs;
 
+/// Controlador para la gestión de empresas.
+/// Permite consultar, activar/desactivar y configurar backups.
 namespace BackupCenter.Api.Controllers;
 
 [ApiController]
@@ -18,6 +20,7 @@ public class EmpresasController : ControllerBase
 
     [HttpGet]
     [Authorize(Roles = "ADMIN,GERENTE")]
+    /// Obtiene listado de empresas.
     public async Task<IActionResult> GetAll()
     {
         IQueryable<BackupCenter.Domain.Entities.Empresa> query = _db.Empresas.AsNoTracking();
@@ -32,6 +35,8 @@ public class EmpresasController : ControllerBase
 
     [HttpPut("{id}/toggle-activa")]
     [Authorize(Roles = "ADMIN")]
+    /// Activa o desactiva una empresa.
+    /// Solo disponible para ADMIN.
     public async Task<IActionResult> ToggleActiva(int id)
     {
         var empresa = await _db.Empresas.FirstOrDefaultAsync(e => e.Id == id);
@@ -53,6 +58,8 @@ public class EmpresasController : ControllerBase
 
     [HttpPut("{id}/config-backup")]
     [Authorize(Roles = "ADMIN")]
+    /// Configura la frecuencia y hora del backup.
+    /// Solo permite valores de frecuencia: 12 o 24 horas.
     public async Task<IActionResult> ConfigBackup(int id, [FromBody] ConfigBackupDto dto)
     {
         var empresa = await _db.Empresas.FindAsync(id);
@@ -73,6 +80,7 @@ public class EmpresasController : ControllerBase
 
     [HttpPut("{id}/config")]
     [Authorize(Roles = "ADMIN")]
+    /// Actualiza la configuración de backup usando formato de hora en texto (HH:mm).
     public async Task<IActionResult> UpdateConfig(int id, [FromBody] UpdateEmpresaConfigDto dto)
     {
         var empresa = await _db.Empresas.FindAsync(id);

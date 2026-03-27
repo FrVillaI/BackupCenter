@@ -1,4 +1,9 @@
-﻿using System;
+﻿
+/// Corrige la estructura de la tabla Empresas:
+/// - Elimina columna Frecuencia (string)
+/// - Agrega FrecuenciaHoras (int)
+/// Ajusta el modelo para soportar lógica de programación por horas.
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable

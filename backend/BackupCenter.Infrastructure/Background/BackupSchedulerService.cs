@@ -11,16 +11,20 @@ using BackupCenter.Data;
 
 namespace BackupCenter.Infrastructure.Background;
 
-// Background scheduler that triggers backups at configured times (hour:minute) every day.
+/// Servicio en segundo plano que ejecuta backups automáticos basados en la hora programada de cada empresa.
 public class BackupSchedulerService : BackgroundService
 {
     private readonly IServiceProvider _services;
+
+    // Evita ejecutar múltiples backups el mismo día por empresa incluso si el scheduler se ejecuta varias veces en el mismo minuto
     private static readonly ConcurrentDictionary<(int, DateTime), bool> _backedUpToday = new();
     public BackupSchedulerService(IServiceProvider services)
     {
         _services = services;
     }
 
+    /// Loop principal del scheduler.
+    /// Se ejecuta cada 60 segundos verificando si alguna empresa debe ejecutar backup.
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -42,6 +46,7 @@ public class BackupSchedulerService : BackgroundService
                     var horaProgramada = DateTime.Today.Add(e.HoraProgramada);
 
                     if (
+                        // Ventana de ejecución de 1 minuto para evitar ejecuciones múltiples
                         ahora >= horaProgramada &&
                         ahora < horaProgramada.AddMinutes(1)
                     )

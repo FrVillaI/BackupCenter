@@ -1,9 +1,14 @@
-﻿using System;
+﻿/// Migración inicial que crea las tablas principales del sistema:
+/// Usuarios, Empresas, Backups y Logs.
+/// También inserta usuarios por defecto.
+/// Generado automáticamente por Entity Framework Core.
+
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+#pragma warning disable CA1814 
 
 namespace BackupCenter.Data.Migrations
 {

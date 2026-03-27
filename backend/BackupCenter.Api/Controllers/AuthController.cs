@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using BackupCenter.Data;
 using BackupCenter.Application.Services;
 
+/// Controlador encargado de la autenticación de usuarios.
 namespace BackupCenter.Api.Controllers;
 
 [ApiController]
@@ -24,6 +25,7 @@ public class AuthController : ControllerBase
         _jwtSettings = jwtSettings;
     }
 
+    /// Autentica un usuario y devuelve un token JWT.
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
@@ -34,6 +36,7 @@ public class AuthController : ControllerBase
     }
 }
 
+/// Representa las credenciales de inicio de sesión.
 public class LoginRequest
 {
     public string Username { get; set; } = string.Empty;

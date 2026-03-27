@@ -5,6 +5,8 @@ using BackupCenter.Application.Interfaces;
 using System.Threading.Tasks;
 using System.IO;
 
+/// Controlador para la importación de datos desde archivos DBF.
+/// Solo accesible para usuarios ADMIN.
 namespace BackupCenter.Api.Controllers;
 
 [ApiController]
@@ -22,9 +24,10 @@ public class ImportDbfController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "ADMIN")]
+    /// Importa datos desde un archivo DBF hacia la base de datos.
     public async Task<IActionResult> Import([FromQuery] string? path)
     {
-        // 🔹 Validación de entrada
+        // Validación: el path es obligatorio
         if (string.IsNullOrWhiteSpace(path))
         {
             _logger.LogWarning("Path vacío. Usuario: {User}", User.Identity?.Name);
@@ -35,7 +38,7 @@ public class ImportDbfController : ControllerBase
             });
         }
 
-        // 🔹 Validación de existencia de archivo
+        // Verifica que el archivo exista en el sistema
         if (!System.IO.File.Exists(path))
         {
             _logger.LogWarning("Archivo no encontrado: {Path}. Usuario: {User}", path, User.Identity?.Name);

@@ -1,3 +1,12 @@
+/// Servicio encargado de importar datos desde archivos DBF hacia la base de datos.
+/// Responsabilidades:
+/// - Leer archivos DBF mediante NDbfReader
+/// - Mapear registros a entidades Empresa
+/// - Insertar o actualizar registros existentes
+/// - Registrar métricas del proceso (leídos, insertados, errores)
+/// Consideraciones:
+/// - No detiene la ejecución por errores en filas individuales
+/// - Usa logging para diagnóstico
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -9,8 +18,10 @@ using BackupCenter.Application.Interfaces;
 using BackupCenter.Application.DTOs;
 using NDbfReader;
 
+
 namespace BackupCenter.Application.Services
 {
+    /// Importa datos desde un archivo DBF.
     public class DbfImportService : IDbfImportService
     {
         private readonly BackupCenterDbContext _db;
@@ -26,6 +37,7 @@ namespace BackupCenter.Application.Services
         {
             var result = new ImportResult();
 
+            // Validar que la ruta no sea nula o vacía
             if (string.IsNullOrWhiteSpace(dbfPath))
             {
                 _logger.LogWarning("Ruta DBF vacía o nula.");
@@ -40,6 +52,7 @@ namespace BackupCenter.Application.Services
 
             try
             {
+                // Leer archivo DBF usando NDbfReader
                 using var table = Table.Open(dbfPath);
                 var reader = table.OpenReader();
 
@@ -47,13 +60,13 @@ namespace BackupCenter.Application.Services
                 foreach (var col in table.Columns)
                     _logger.LogInformation("Campo DBF detectado: {Field} ({Type})", col.Name, col.Type);
 
+                // Iterar registros del DBF
                 while (reader.Read())
                 {
                     result.Leidos++;
 
                     try
                     {
-                        // Campos correctos según tu EMPRESAS.DBF
                         var nombre = reader.GetString("EMPRESA")?.Trim();
                         var ruta = reader.GetString("RUTA")?.Trim();
                         int activo = SafeGetInt(reader, "ACTIVOS");
@@ -65,7 +78,7 @@ namespace BackupCenter.Application.Services
                             continue;
                         }
 
-                        // Buscar existente por nombre
+                        // Buscar si la empresa ya existe
                         var existing = await _db.Empresas
                             .FirstOrDefaultAsync(e => e.Nombre == nombre);
 
@@ -90,6 +103,8 @@ namespace BackupCenter.Application.Services
                             result.Insertados++;
                         }
                     }
+
+                    // Manejar errores por fila sin detener el proceso completo
                     catch (Exception exRow)
                     {
                         result.Errores++;
@@ -114,6 +129,7 @@ namespace BackupCenter.Application.Services
         }
 
         // Métodos auxiliares seguros
+        /// Obtiene un entero de forma segura desde el DBF.
         private int SafeGetInt(Reader reader, string field)
         {
             try { return reader.GetInt32(field); }

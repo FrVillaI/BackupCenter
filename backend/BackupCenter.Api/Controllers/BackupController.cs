@@ -4,6 +4,8 @@ using BackupCenter.Application.Interfaces;
 using System.Threading.Tasks;
 using BackupCenter.Data;
 
+/// Controlador para gestión de backups.
+/// Permite iniciar backups manuales.
 namespace BackupCenter.Api.Controllers;
 
 [ApiController]
@@ -22,7 +24,7 @@ public class BackupsController : ControllerBase
     [Authorize(Roles = "ADMIN,GERENTE")]
     public async Task<IActionResult> StartBackup(int empresaId, [FromQuery] string? overridePath = null)
     {
-        // Restringe para GERENTE: solo si la empresa está activa
+        /// Ejecuta un backup manual para una empresa.
         if (User.IsInRole("GERENTE"))
         {
             var emp = await _db.Empresas.FindAsync(empresaId);
