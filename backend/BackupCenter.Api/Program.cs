@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using BackupCenter.Infrastructure.Background;
 
 using BackupCenter.Data;
 using BackupCenter.Application.Services;
@@ -35,7 +36,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 builder.Services.AddScoped<IDbfImportService, DbfImportService>();
 
-builder.Services.AddHostedService<BackupWorker>();
+
+
+builder.Services.AddHostedService<BackupSchedulerService>();
 
 // ----------------------------------------
 // Controllers + Swagger

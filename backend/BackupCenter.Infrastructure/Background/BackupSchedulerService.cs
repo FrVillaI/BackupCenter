@@ -27,19 +27,24 @@ public class BackupSchedulerService : BackgroundService
         {
             try
             {
-                var now = DateTime.UtcNow;
-                var hhmm = now.ToString("HH:mm");
                 using var scope = _services.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<BackupCenterDbContext>();
-                var backups = await db.Empresas.AsNoTracking().Where(e => e.Activa).ToListAsync(stoppingToken);
-                foreach (var e in backups)
+
+                var empresas = await db.Empresas
+                    .AsNoTracking()
+                    .Where(e => e.Activa)
+                    .ToListAsync(stoppingToken);
+
+                var ahora = DateTime.Now;
+
+                foreach (var e in empresas)
                 {
-                    var ahora = DateTime.Now;
-                    var horaActual = ahora.TimeOfDay;
+                    var horaProgramada = DateTime.Today.Add(e.HoraProgramada);
 
-                    var diferencia = (horaActual - e.HoraProgramada).TotalMinutes;
-
-                    if (Math.Abs(diferencia) < 1)
+                    if (
+                        ahora >= horaProgramada &&
+                        ahora < horaProgramada.AddMinutes(1)
+                    )
                     {
                         var key = (e.Id, ahora.Date);
 
@@ -54,7 +59,7 @@ public class BackupSchedulerService : BackgroundService
                             {
                                 try
                                 {
-                                    var log = new BackupCenter.Domain.Entities.LogEntry
+                                    var log = new LogEntry
                                     {
                                         Fecha = DateTime.UtcNow,
                                         Usuario = "SYSTEM",
@@ -64,6 +69,7 @@ public class BackupSchedulerService : BackgroundService
                                         Detalle = ex.Message,
                                         IpEquipo = ""
                                     };
+
                                     db.Logs.Add(log);
                                     await db.SaveChangesAsync();
                                 }
@@ -73,7 +79,11 @@ public class BackupSchedulerService : BackgroundService
                     }
                 }
             }
-            catch { /* ignore scheduler errors to avoid crashing the host */ }
+            catch
+            {
+                // evitar caída del servicio
+            }
+
             await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
         }
     }
