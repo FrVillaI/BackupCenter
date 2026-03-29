@@ -6,45 +6,81 @@ import { BackupService } from '../services/backup.service';
 import { HttpClient } from '@angular/common/http';
 import { LoginModalComponent } from '../login-modal/login-modal.component';
 
-
-
+/**
+ * Dashboard principal del sistema de respaldos.
+ *
+ * Responsabilidades:
+ * - Mostrar empresas activas/inactivas
+ * - Ejecutar backups individuales y masivos
+ * - Gestionar selección múltiple
+ * - Mostrar progreso de operaciones
+ * - Importar configuraciones desde DBF
+ * - Controlar autenticación para acciones críticas
+ *
+ * Este componente actúa como orquestador entre:
+ * UI ↔ Servicios (EmpresaService, BackupService)
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule,LoginModalComponent],
+  imports: [CommonModule, FormsModule, LoginModalComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
-
 export class DashboardComponent implements OnInit {
+
+  /** Controla visibilidad del modal de login */
   showLoginModalFlag = false;
+
+  /** ID pendiente cuando se requiere autenticación */
   backupPendingId: number | null = null;
+
+  /** Token temporal (flujo manual) */
   authToken: string = '';
+
+  /** Lista completa de empresas */
   empresas: Empresa[] = [];
+
+  /** Subconjuntos para UI */
   empresasActivas: Empresa[] = [];
   empresasInactivas: Empresa[] = [];
-  selectedIds: Set<number> = new Set<number>();
-  loadingIds: Set<number> = new Set<number>();
-  importPath: string = '';
-  expandedId: number | null = null;   // ← nuevo: controla qué card está abierta
 
+  /** IDs seleccionados para backup masivo */
+  selectedIds: Set<number> = new Set<number>();
+
+  /** IDs actualmente en proceso (loading individual) */
+  loadingIds: Set<number> = new Set<number>();
+
+  /** Ruta para importación DBF */
+  importPath: string = '';
+
+  /** Controla expansión de tarjetas en UI */
+  expandedId: number | null = null;
+
+  /** Estado de carga masiva */
   isBulkLoading: boolean = false;
 
+  /** Progreso de backup masivo */
   bulkTotal: number = 0;
   bulkProgress: number = 0;
 
+  /** Mensaje de notificación */
   toastMessage: string = '';
 
   constructor(
     private es: EmpresaService,
     private bs: BackupService,
     private http: HttpClient
-  ) { }
+  ) {}
 
+  /** Inicialización del componente */
   ngOnInit(): void {
     this.loadEmpresas();
   }
 
+  /**
+   * Carga empresas desde backend y separa por estado
+   */
   loadEmpresas(): void {
     this.es.getEmpresas().subscribe(data => {
       this.empresas = data;
@@ -54,27 +90,40 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // ── Expand / collapse card ─────────────────────────────────
+  // ─────────────────────────────────────────────
+  // UI STATE
+  // ─────────────────────────────────────────────
+
+  /** Expande o colapsa una tarjeta */
   toggleExpand(id: number): void {
     this.expandedId = this.expandedId === id ? null : id;
   }
 
-  // ── Checkbox ───────────────────────────────────────────────
+  /** Manejo de selección múltiple */
   toggleSelection(id: number, event: Event): void {
     const input = event.target as HTMLInputElement;
+
     if (input.checked) this.selectedIds.add(id);
     else this.selectedIds.delete(id);
   }
 
-  // ── Format date ────────────────────────────────────────────
+  /** Formatea fechas para UI */
   formatDate(dateStr?: string): string {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleString();
   }
 
-  // ── Single backup ──────────────────────────────────────────
+  // ─────────────────────────────────────────────
+  // BACKUP INDIVIDUAL
+  // ─────────────────────────────────────────────
+
+  /**
+   * Ejecuta backup para una sola empresa
+   */
   backupSingle(id: number): void {
     const empresa = this.empresas.find(e => e.id === id);
+
+    // Validación: no permitir respaldo en empresas inactivas
     if (!empresa?.activa) {
       this.showToast('Empresa inactiva no puede hacer backup');
       return;
@@ -86,14 +135,14 @@ export class DashboardComponent implements OnInit {
       next: res => {
         console.log(`Backup realizado para empresa ${id}`, res);
 
-        // 🔹 Guardamos información del backup en la empresa
+        // Se guarda metadata del respaldo en memoria
         empresa.lastBackup = {
           zip: res.zip,
           hash: res.hash,
           hashPath: res.hashPath
         };
 
-        this.updateUltimaCopia(id); // fecha local
+        this.updateUltimaCopia(id);
         this.showToast(`Backup completado (Empresa ${id})`);
       },
       error: err => {
@@ -104,12 +153,19 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // ── Bulk backup ────────────────────────────────────────────
+  // ─────────────────────────────────────────────
+  // BACKUP MASIVO
+  // ─────────────────────────────────────────────
+
+  /**
+   * Ejecuta backups en paralelo para empresas seleccionadas
+   */
   startBackupSelected(): void {
     if (this.selectedIds.size === 0) return;
 
     this.isBulkLoading = true;
 
+    // Solo empresas activas
     const ids = Array.from(this.selectedIds).filter(id => {
       const e = this.empresas.find(emp => emp.id === id);
       return e?.activa;
@@ -125,6 +181,7 @@ export class DashboardComponent implements OnInit {
         complete: () => {
           this.bulkProgress++;
 
+          // Finalización del proceso masivo
           if (this.bulkProgress === this.bulkTotal) {
             this.isBulkLoading = false;
             this.showToast(`Backup masivo completado (${this.bulkTotal} empresas)`);
@@ -134,30 +191,17 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // ── Update last backup timestamp locally ──────────────────
+  // ─────────────────────────────────────────────
+  // UTILIDADES
+  // ─────────────────────────────────────────────
+
+  /** Actualiza fecha de último respaldo localmente */
   updateUltimaCopia(id: number): void {
     const empresa = this.empresas.find(e => e.id === id);
     if (empresa) empresa.ultimaCopia = new Date().toISOString();
   }
 
-  // ── Import DBF ─────────────────────────────────────────────
-  importDbf(): void {
-    if (!this.importPath) return alert('Debe ingresar una ruta válida');
-
-    this.http.post(`/api/ImportDbf?path=${encodeURIComponent(this.importPath)}`, {})
-      .subscribe({
-        next: res => {
-          console.log('ImportDbf realizado', res);
-          alert('Importación exitosa');
-          this.loadEmpresas();
-        },
-        error: err => {
-          console.error('Error al importar DBF', err);
-          alert('Error al importar DBF');
-        }
-      });
-  }
-
+  /** Muestra notificación temporal */
   showToast(message: string): void {
     this.toastMessage = message;
 
@@ -166,16 +210,47 @@ export class DashboardComponent implements OnInit {
     }, 3000);
   }
 
+  // ─────────────────────────────────────────────
+  // IMPORTACIÓN
+  // ─────────────────────────────────────────────
+
+  /**
+   * Importa configuración desde archivo DBF
+   */
+  importDbf(): void {
+    if (!this.importPath) {
+      alert('Debe ingresar una ruta válida');
+      return;
+    }
+
+    this.http.post(`/api/ImportDbf?path=${encodeURIComponent(this.importPath)}`, {})
+      .subscribe({
+        next: () => {
+          alert('Importación exitosa');
+          this.loadEmpresas();
+        },
+        error: () => {
+          alert('Error al importar DBF');
+        }
+      });
+  }
+
+  // ─────────────────────────────────────────────
+  // CONFIGURACIÓN EMPRESA
+  // ─────────────────────────────────────────────
+
+  /** Alterna estado activo/inactivo */
   toggleActiva(id: number): void {
     this.es.toggleActiva(id).subscribe({
       next: () => {
         this.showToast('Estado actualizado');
-        this.loadEmpresas(); // recarga listas separadas
+        this.loadEmpresas();
       },
       error: () => this.showToast('Error al cambiar estado')
     });
   }
 
+  /** Guarda configuración de frecuencia/hora */
   guardarConfiguracion(e: Empresa): void {
     this.http.put(`/api/empresas/${e.id}/config`, {
       frecuenciaHoras: e.frecuenciaHoras,
@@ -190,18 +265,24 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // Llamar login si no hay token
+  // ─────────────────────────────────────────────
+  // AUTENTICACIÓN MANUAL
+  // ─────────────────────────────────────────────
+
+  /**
+   * Ejecuta backup requiriendo login previo
+   */
   backupManualWithAuth(id: number) {
     if (!this.authToken) {
       this.backupPendingId = id;
-      this.showLoginModalFlag = true; // abre modal
+      this.showLoginModalFlag = true;
       return;
     }
 
-    this.backupSingle(id); // si ya hay token
+    this.backupSingle(id);
   }
 
-  // Cuando el login es exitoso
+  /** Callback al login exitoso */
   onLoginSuccess(token: string) {
     this.authToken = token;
     this.showLoginModalFlag = false;
@@ -212,11 +293,9 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  // Cuando se cancela login
+  /** Cancelación de login */
   onLoginCancel() {
     this.showLoginModalFlag = false;
     this.backupPendingId = null;
   }
-
 }
-

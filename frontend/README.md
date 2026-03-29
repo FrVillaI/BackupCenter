@@ -1,23 +1,128 @@
 # BackupCenter Frontend
 
-Frontend para el sistema BackupCenter.  
-Aplicación de una sola página (SPA) desarrollada con **Angular** que consume la API de BackupCenter. Incluye autenticación, rutas protegidas y una estructura modular lista para escalar.
+Frontend del sistema **BackupCenter**, una aplicación SPA desarrollada con **Angular 18** para la gestión de respaldos empresariales.
 
-> Generado con Angular CLI versión 18.2.21.
+Este cliente consume una API en .NET y permite administrar empresas, ejecutar respaldos manuales o masivos y configurar automatización.
+---
+
+## Descripción general
+
+El sistema está diseñado para:
+
+* Gestionar múltiples empresas y sus rutas de respaldo
+* Ejecutar backups manuales y masivos
+* Configurar frecuencia y horarios de respaldo
+* Importar configuraciones desde archivos DBF
+* Validar integridad mediante hash
 
 ---
 
-##  Características
+##  Características principales
 
--  **Login** – Autenticación de usuarios.
--  **Dashboard protegido** – Rutas con guards para control de acceso.
--  **Servicios** – Comunicación con el backend mediante servicios centralizados.
+## Autenticación
+
+* Login tradicional (/login)
+* Modal de autenticación para acciones críticas (backup manual)
+* Integración con JWT
+
+## Dashboard interactivo
+
+Separación de empresas:
+
+* Activas
+* Inactivas
+* Expansión dinámica de tarjetas
+* Edición de configuración en tiempo real
+
+## Gestión de respaldos
+
+* Backup individual por empresa
+* Backup masivo (con progreso visual)
+* Indicadores de estado (loading por empresa)
+* Visualización de:
+    * archivo .zip
+    * hash SHA-256
+    * ruta de almacenamiento
+
+## Importación de datos
+* Importación desde archivo DBF
+* Recarga automática de empresas tras importación
+
+## Sistema de notificaciones
+* Toasts para feedback del usuario
+* Estados visuales (loading, disabled, progreso)
+---
+
+## Arquitectura
+
+Componentes principales
+
+```
+DashboardComponent
+├── Gestión de empresas
+├── Backup individual / masivo
+├── Estado UI (selección, loading, progreso)
+└── Integración con modal de login
+
+LoginComponent
+└── Autenticación principal
+
+LoginModalComponent
+└── Autenticación contextual (acciones sensibles)
+```
+
+---
+
+## Servicios
+
+```
+AuthService
+├── Login / Logout
+├── Manejo de JWT
+└── Estado de sesión
+
+BackupService
+├── Ejecutar backups
+└── Listar respaldos
+
+EmpresaService
+├── Obtener empresas
+└── Activar / desactivar
+```
+
+---
+
+## Flujo de autenticación
+
+```
+LoginComponent → AuthService → localStorage
+                           ↓
+                    AuthInterceptor
+                           ↓
+                        Backend
+```
+
+---
+
+## Estructura del proyecto
+
+```
+src/
+├── app/
+│   ├── dashboard/       # Vista principal
+│   ├── login/           # Login tradicional
+│   ├── login-modal/     # Modal de autenticación
+│   ├── services/        # Servicios HTTP
+│   └── app.routes.ts    # Rutas
+```
+
 ---
 
 ##  Requisitos previos
 
 - Node.js (versión 18 o superior recomendada)
 - Angular CLI instalado globalmente:
+
 ```
   npm install -g @angular/cli
 ```
@@ -49,30 +154,39 @@ Iniciar servidor de desarrollo:
 ng serve
 ```
 
-Navegar a http://localhost:4200/. La aplicación se recargará automáticamente al realizar cambios.
-
----
-
-## Estructura del proyecto
+Acceder a:
 
 ```
-src/
-├── app/
-│   ├── services/        # Servicios para API y autenticación
-│   └── app.module.ts    # Módulo principal de la aplicación
-└── environments/        # Configuración por entorno (development, production)
+http://localhost:4200/
 ```
 
 ---
 
 ## Seguridad
-Se utilizan guards para proteger rutas como el dashboard.
 
-El token de autenticación se almacena en localStorage (puede ajustarse según necesidades de seguridad).
+* Uso de JWT para autenticación
+* Token almacenado en localStorage
+* Interceptor HTTP para adjuntar token automáticamente
+
+## Consideraciones:
+
+* No se valida expiración del token en frontend
+* localStorage es vulnerable a XSS (mejorable con cookies HttpOnly)
 
 ---
 
 ## Tecnologías utilizadas
-Angular 18
-TypeScript
-Angular CLI
+
+* Angular 18
+* TypeScript
+* RxJS
+* Angular Standalone Components
+* HTTP Client
+
+## Próximas mejoras
+
+* Guards reales de autenticación
+* Manejo de expiración JWT
+* Refactor a arquitectura por capas
+* Control de concurrencia en procesos
+* UI/UX más robusta (sin alert)
