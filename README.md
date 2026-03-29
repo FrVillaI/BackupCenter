@@ -1,27 +1,59 @@
 # BackupCenter
 
-Sistema integral de gestión de respaldos empresariales compuesto por:
+**BackupCenter** es un sistema integral para la gestión automatizada y manual de respaldos empresariales, diseñado para entornos donde la integridad, trazabilidad y control de la información son críticos.
+
+Combina una **API robusta en .NET 8** con un frontend moderno en Angular, permitiendo administrar múltiples empresas, programar respaldos y auditar cada operación.
 
 - **Backend (API REST)** desarrollado en .NET 8  
 - **Frontend (SPA)** desarrollado en Angular  
+---
 
-Permite administrar empresas, ejecutar respaldos manuales/automáticos y visualizar información desde un dashboard.
+## Problema que resuelve
+
+En muchas empresas:
+
+* Los respaldos se realizan manualmente (alto riesgo)
+* No existe trazabilidad de qué se respaldó
+* No hay validación de integridad
+* No existe control de acceso ni auditoría
+
+BackupCenter soluciona esto mediante:
+
+* Automatización de respaldos
+* Generación de hash SHA-256
+* Registro histórico y logs
+* Control de usuarios por roles
 
 ---
 
 ## Arquitectura General
 
+```
 [ Angular Frontend ]
-│
-▼
+        │
+        ▼
 [ .NET 8 Web API ]
-│
-▼
+        │
+        ▼
 [ SQLite Database ]
-│
-▼
-[ Sistema de Archivos (Backups .zip) ]
+        │
+        ▼
+[ File System (.zip + hash) ]
+```
 
+## Flujo real del sistema
+
+```
+Usuario → Login (JWT)
+        → Dashboard
+        → Ejecuta backup
+        → API procesa:
+            - Copia archivos
+            - Comprime (.zip)
+            - Genera hash SHA-256
+            - Guarda en DB
+            - Registra logs
+```
 
 ---
 
@@ -29,33 +61,185 @@ Permite administrar empresas, ejecutar respaldos manuales/automáticos y visuali
 
 ### Backend – BackupCenter API
 
-Microservicio encargado de:
+Microservicio desarrollado en **.NET 8** con arquitectura en capas:
 
-- Gestión de usuarios y autenticación
-- Configuración de empresas
-- Ejecución de respaldos
-- Scheduler automático
-- Registro de logs e historial
+Responsabilidades:
 
- Ubicación:
+* Autenticación con JWT
+* Gestión de usuarios (ADMIN / GERENTE)
+* Configuración de empresas
+* Ejecución de backups
+* Scheduler automático (BackgroundService)
+* Auditoría y logs
+* Importación desde DBF
+
+Ubicación:
  
+```
 /backend
-
----
+```
 
 ### Frontend – BackupCenter SPA
 
-Aplicación web que permite:
+Aplicación SPA desarrollada en Angular 18:
 
-- Login de usuarios
-- Visualización de dashboard
-- Consumo de la API
-- Interacción con respaldos
+Funcionalidades:
+
+* Login de usuarios
+* Dashboard interactivo
+* Ejecución de backups individuales y masivos
+* Visualización de resultados (zip + hash)
+* Configuración dinámica de empresas
 
  Ubicación:
 
+```
 /frontend
+```
 
+## Seguridad
+* Autenticación basada en JWT
+* Contraseñas hasheadas con BCrypt
+* Interceptor HTTP en frontend
+* Separación de roles (ADMIN / GERENTE)
+
+Mejoras futuras:
+
+* Manejo de expiración de tokens
+* Uso de cookies HttpOnly
+* Encriptación de backups
+
+---
+
+## Características clave
+
+* Backups automáticos y manuales
+* Scheduler configurable
+* Compresión en .zip
+* Generación de hash SHA-256
+* Registro en base de datos
+* Auditoría completa (logs)
+* Importación desde archivos DBF
+* Control de concurrencia por empresa
+
+## Persistencia
+
+* Base de datos: SQLite
+* ORM: Entity Framework Core
+
+Tablas principales:
+
+* Usuarios
+* Empresas
+* Backups
+* Logs
+
+--- 
+
+## Estructura del repositorio
+
+```
+BackupCenter/
+│
+├── backend/
+│   ├── BackupCenter.Api
+│   ├── BackupCenter.Application
+│   ├── BackupCenter.Domain
+│   ├── BackupCenter.Data
+│   └── BackupCenter.Infrastructure
+│
+├── frontend/
+│
+└── README.md
+```
+---
+
+
+## Ejecución del proyecto
+
+1. Clonar repositorio
+
+```
+git clone https://github.com/FrVillaI/BackupCenter.git
+cd BackupCenter
+```
+
+2. Backend
+
+```
+cd backend
+dotnet restore
+dotnet ef database update
+dotnet run --project BackupCenter.API
+```
+
+* Endpoints:
+
+API disponible en:
+
+```
+http://localhost:5000
+```
+
+Swagger:
+
+```
+http://localhost:5000/swagger
+```
+
+3. Frontend
+
+```
+cd frontend
+npm install
+ng serve
+```
+
+* Endpoints:
+
+Aplicación disponible en:
+
+```
+http://localhost:4200
+```
+
+## Configuración importante
+
+**Backend**
+
+**Base de datos:**
+
+```
+BackupCenter.db
+```
+
+**Ruta DBF:**
+
+```
+C:\BackupCenter\EMPRESAS.dbf
+```
+
+**Carpeta de backups:**
+
+```
+C:\BackupCenter\Backups
+```
+---
+
+## Consideraciones técnicas
+
+* Las rutas deben existir físicamente
+* Se requiere permisos de lectura/escritura
+* Tamaño máximo por backup: 50 GB
+---
+
+## Roadmap
+* Encriptación de base de datos SQLite
+* Encriptación de archivos .zip
+* Soporte para almacenamiento en la nube
+* Notificaciones automáticas de fallos
+* Dashboard avanzado (gráficas, métricas)
+* Expiración y refresh de JWT
 ---
 
 ## Tecnologías utilizadas
@@ -73,54 +257,29 @@ Aplicación web que permite:
 - TypeScript  
 - Angular CLI  
 
----
-
 ## Requisitos previos
 
 - Node.js (v18 o superior)  
 - Angular CLI  
 - .NET SDK 8  
 - Git  
+---
+
+## Autor
+
+Isaac Villacis
+
+## Licencia
+
+MIT License
 
 ---
 
-## Ejecución del proyecto
+## Capturas de Pantalla
+<p align="center"> 
+    <img src="doc/Cap_1.png /> 
+    <img src="doc/Cap_2.png /> 
+    <img src="doc/Cap_4.png /> 
+</p>
 
-1. Clonar repositorio
 
-    git clone <url-del-repositorio>
-    cd BackupCenter
-
-2. Ejecutar Backend
-    cd backend
-    dotnet restore
-    dotnet ef database update
-    dotnet run --project BackupCenter.API
-
-  API disponible en:
-
-    http://localhost:5000
-
-  Swagger:
-
-    http://localhost:5000/swagger
-
-3. Ejecutar Frontend
-    cd frontend
-    npm install
-    ng serve
-
-Aplicación disponible en:
-
-    http://localhost:4200
-
-## Configuración importante
-
-Backend
-Ruta DBF:
-
-  C:\Fenix\AdsFenix\Datos_Pro\EMPRESAS.dbf
-
-Carpeta de backups:
-
-  C:\Fenix\Backups
