@@ -276,10 +276,10 @@ MIT License
 ---
 
 ## Capturas de Pantalla
-<p align="center"> 
-    <img src="doc/Cap_1.png /> 
-    <img src="doc/Cap_2.png /> 
-    <img src="doc/Cap_4.png /> 
-</p>
 
+<p align="center"> 
+    <img src="doc/Cap_1.png" width="800"/> 
+    <img src="doc/Cap_2.png" width="800"/> 
+    <img src="doc/Cap_4.png" width="800"/> 
+</p>
 
